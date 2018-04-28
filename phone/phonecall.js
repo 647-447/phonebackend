@@ -9,7 +9,7 @@ app.get('/', function(req,res){
 	res.send('Hello World');
 });
 
-app.get('/voice', voice.interview);
+app.post('/voice', voice.interview);
 
 var server = http.createServer(app);
 server.listen(9092, function() {
