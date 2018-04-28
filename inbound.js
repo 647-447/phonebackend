@@ -9,7 +9,7 @@ app.post('/voice', function(req,res){
     console.log("test");
 
     const twiml = new VoiceResponse();
-    console.log(req.body.From);
+    //***console.log(req.body.From);
     twiml.say('Emergency?');
 
     function say(text) {
