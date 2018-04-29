@@ -1,6 +1,10 @@
 const http = require('http');
 const VoiceResponse = require('twilio').twiml.VoiceResponse;
 
+const MessagingResponse = require('twilio').twiml.MessagingResponse;
+
+const appName = 'Oh Shit';
+
 var express = require('express');
 var app = express();
 
@@ -9,7 +13,7 @@ var bodyParser = require('body-parser');
 app.use(bodyParser.urlencoded({ extended: false }))
 app.use(bodyParser.json())
 
-var intro = 'Thank you for calling Route X. If you are having an emergency or need help and have not called Nine One One yet, hang up and call Nine One One immediately. Otherwise Please enter your five digit zip code followed by the star key.';
+var intro = 'Thank you for calling'+appName+'. If you are having an emergency or need help and have not called Nine One One, hang up and do so immediately. Otherwise Please enter your five digit zip code followed by the star key.';
 
 var zipQuestion = 'Please enter your five digit zip code followed by the star key.';
 
@@ -21,6 +25,14 @@ var questions = [
 
 //var currentSurveyPositions = {};
 var currentCallSessions = {};
+
+function resolveZipToCityState(zip) {
+    // lol we could use networking here
+    var city = 'Fremont';
+    var state = 'California'
+
+    return {'city':city, 'state': state};
+}
  
 app.post('/voice', function(req,res){
     var input = req.body.Digits;
@@ -65,8 +77,9 @@ app.post('/voice', function(req,res){
         // The numbers for zip would be stored in the input variable
 
 
-        var city = 'Fremont';
-        var state = 'California';
+        var citystate = resolveZipToCityState(input);
+        var city = citystate.city;
+        var state = citystate.state;
 
         console.log(input);
 
@@ -152,6 +165,46 @@ app.post('/voice', function(req,res){
     console.log('twiml', twiml.toString());
 
 });
+
+
+var smsSessions = {};
+
+app.post('/sms', (req, res) => {
+    const twiml = new MessagingResponse();
+
+    console.log(req);
+    var phone = req.body.From;
+    var body = req.body.Body;
+
+    var responseText;
+
+    if(phone in smsSessions){
+
+        var zip = body;
+
+        var citystate = resolveZipToCityState(zip);
+        var city = citystate.city;
+        var state = citystate.state;
+
+        responseText = 'You are in '+city+', '+state+ '. There is currently a wildfire in Eastern Hayward. It is is moving south at a rate of approximately 8 miles per hour. Fremont is within the fires path and immediate evacuation to the West Bay Areea or further inland Eastis recommended. Note that the Dumbarton bridge going West is congested. Use interstate 880 South instead.';
+
+        delete smsSessions[phone];
+
+    } else { // no session so create one (not two, only one.)
+
+        smsSessions[phone] = true;
+
+        responseText = 'Than you for texting'+appName+'. Please respond with the 5 digit ZIP code of your current location for further information.';
+
+    }
+
+    
+  
+    twiml.message(responseText);
+  
+    res.writeHead(200, {'Content-Type': 'text/xml'});
+    res.end(twiml.toString());
+  });
 
 var server = http.createServer(app);
 server.listen(1337, function() {
