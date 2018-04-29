@@ -3,7 +3,7 @@ const VoiceResponse = require('twilio').twiml.VoiceResponse;
 
 const MessagingResponse = require('twilio').twiml.MessagingResponse;
 
-const appName = 'Oh Shit';
+const appName = 'Oh, Shit';
 
 var express = require('express');
 var app = express();
@@ -13,7 +13,7 @@ var bodyParser = require('body-parser');
 app.use(bodyParser.urlencoded({ extended: false }))
 app.use(bodyParser.json())
 
-var intro = 'Thank you for calling'+appName+'. If you are having an emergency or need help and have not called Nine One One, hang up and do so immediately. Otherwise Please enter your five digit zip code followed by the star key.';
+var intro = 'Thank you for calling '+appName+'. If you have an emergency  and have not called Nine One One, hang up and call immediately. Otherwise Please enter your five digit zip code followed by the star key.';
 
 var zipQuestion = 'Please enter your five digit zip code followed by the star key.';
 
@@ -34,9 +34,31 @@ function resolveZipToCityState(zip) {
     return {'city':city, 'state': state};
 }
  
+var phone = {};
+
+function isEmpty(obj) {
+   for(var key in obj) {
+       if(obj.hasOwnProperty(key))
+           return false;
+   }
+   return true;
+}
+
+app.get('/phone', function(req,res){
+   if (!isEmpty(phone)) {
+    
+        const twiml = new VoiceResponse();
+        res.writeHead(200, { 'Content-Type': 'text/plain' });
+        res.end('Test');
+        console.log(res);
+    }
+
+
+});
+
 app.post('/voice', function(req,res){
     var input = req.body.Digits;
-    var phone = req.body.From;
+    var incomingphone = req.body.From;
     //res.send(req.body);
     console.log("test");
 
@@ -64,7 +86,7 @@ app.post('/voice', function(req,res){
     var questionText;
     var isLastQuestion = false;
 
-    if(phone in currentCallSessions){ 
+    if(incomingphone in currentCallSessions){ 
 
         // The phone number is in a survey position and therefore can skip
         // to the next bit of info insted of starting from beginning
@@ -83,19 +105,25 @@ app.post('/voice', function(req,res){
 
         console.log(input);
 
-
-
-
         // This is the last interaction with them so we can just read to them
         // and delete their information
 
-        delete currentCallSessions[phone];
+        delete currentCallSessions[incomingphone];
 
         // Construct the question text
 
-        questionText = 'You are in '+city+', '+state+ '. There is currently a wildfire in Eastern Hayward. It is is moving south at a rate of approximately 8 miles per hour. Fremont is within the fires path and immediate evacuation to the West Bay Areea or further inland Eastis recommended. Note that the Dumbarton bridge going West is congested. Use interstate 880 South instead.';
+        questionText = 'You are in '+city+', '+state+ '. There is a wildfire in Eastern Hayward. It is moving south at approximately 8 miles per hour. Fremont is within its path. Evacuate Immediately to the West Bay Area or further inland East. The Dumbarton bridge is congested. Use interstate 880 South instead.';
 
 
+        /*
+        var url = 'http://nkhosla.com/dl/AngelHackAssets/mms.jpg'
+        const response = new MessagingResponse();
+        const message = response.message();
+        message.body('A Map of Your Area');
+        message.media(url);
+
+        twiml.sms(message);
+        */
 
 
         /*
@@ -113,7 +141,7 @@ app.post('/voice', function(req,res){
 
     } else { // There is no survey, so read intro and question 1
         questionText = intro;// + '  '+ zipQuestion;
-        currentCallSessions[phone] = true;
+        currentCallSessions[incomingphone] = true;
         //currentSurveyPositions[phone] = 1;
     }
 
