@@ -9,9 +9,9 @@ var bodyParser = require('body-parser');
 app.use(bodyParser.urlencoded({ extended: false }))
 app.use(bodyParser.json())
 
-var intro = 'If you are having an emergency or need help and have not called Nine One One yet, hang up and call Nine One One immediately. Otherwise please stay on the line for useful information.';
+var intro = 'Thank you for calling Route X. If you are having an emergency or need help and have not called Nine One One yet, hang up and call Nine One One immediately. Otherwise Please enter your five digit zip code followed by the star key.';
 
-var zipQuestion = 'Please enter your five digit zip code.';
+var zipQuestion = 'Please enter your five digit zip code followed by the star key.';
 
 var questions = [
     'Are you in immediate danger?',
@@ -19,7 +19,8 @@ var questions = [
     'Do you need medical assistance?'
 ];
 
-var currentSurveyPositions = {};
+//var currentSurveyPositions = {};
+var currentCallSessions = {};
  
 app.post('/voice', function(req,res){
     var input = req.body.Digits;
@@ -33,7 +34,7 @@ app.post('/voice', function(req,res){
     //console.log('req.input' , input);
 
     function say(text) {
-        twiml.say({ voice: 'alice'}, text);
+        twiml.say( text);
     }
 
     // respond with the current TwiML content
@@ -42,13 +43,44 @@ app.post('/voice', function(req,res){
         response.send(twiml.toString());
     }
 
+
+
+
+
+    // Now read the stuff and do the actual whatever
+
     var questionText;
     var isLastQuestion = false;
 
-    if(phone in currentSurveyPositions){ 
+    if(phone in currentCallSessions){ 
 
         // The phone number is in a survey position and therefore can skip
         // to the next bit of info insted of starting from beginning
+        // Since this flow only has two stages (1. Enter ZIP, 2. Do this)
+        // This naturally means we are in the second stage
+
+
+        // This is where we would find the user's city and state if we wanted
+        // to do it programmatically and not hard coded
+        // The numbers for zip would be stored in the input variable
+
+
+        var city = 'Fremont';
+        var state = 'California';
+
+        console.log(input);
+
+
+
+
+        // This is the last interaction with them so we can just read to them
+        // and delete their information
+
+        delete currentCallSessions[phone];
+
+        // Construct the question text
+
+        questionText = 'You are in '+city+', '+state+ '. There is currently a wildfire in Eastern Hayward. It is is moving south at a rate of approximately 8 miles per hour. Fremont is within the fires path and immediate evacuation to the West Bay Areea or further inland Eastis recommended. Note that the Dumbarton bridge going West is congested. Use interstate 880 South instead.';
 
 
 
@@ -67,13 +99,14 @@ app.post('/voice', function(req,res){
         */
 
     } else { // There is no survey, so read intro and question 1
-        questionText = intro + '  '+ questions[0];
-        currentSurveyPositions[phone] = 1;
+        questionText = intro;// + '  '+ zipQuestion;
+        currentCallSessions[phone] = true;
+        //currentSurveyPositions[phone] = 1;
     }
 
     //twiml.say('Emergency?');
 
-    function gather(qText, isLastQuestion) {
+    function gather(qText) {
         say(qText);
         
 
@@ -91,7 +124,7 @@ app.post('/voice', function(req,res){
         */
     //}
 
-    gather(questionText, isLastQuestion);
+    gather(questionText);
 
     /*
     if (input) {
